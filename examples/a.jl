@@ -1,17 +1,44 @@
+using BenchmarkTools
+using Test
 
-import ForwardDiff
+#import NMRHamiltonian
+import NMRSpecifyRegions
+import NMRDataSetup
 
-import FiniteDifferences
+using DataDeps
+import Tar
 
-using TypedTables # for displaying results.
+import BSON
 
 using LinearAlgebra
-using BenchmarkTools
+using FFTW
 
 import Random
 
+# # for plotting.
+# import MakiePlots
+# using Parameters
 
-# Define problem data
+import PyPlot
+import FiniteDifferences
 
 using Revise
 import NMRFitModel
+
+#OSQP = NMRFitModel.OSQP
+
+NMRSignalSimulator = NMRFitModel.NMRSignalSimulator
+NMRHamiltonian = NMRSignalSimulator.NMRHamiltonian
+JSON3 = NMRHamiltonian.JSON3
+
+serializemixture = NMRHamiltonian.serializemixture
+serializephysicalparams = NMRHamiltonian.serializephysicalparams
+
+deserializemixture = NMRHamiltonian.deserializemixture
+deserializephysicalparams = NMRHamiltonian.deserializephysicalparams
+
+serializclproxies = NMRSignalSimulator.serializclproxies
+serializitpsamples = NMRSignalSimulator.serializitpsamples
+
+deserializclproxies = NMRSignalSimulator.deserializclproxies
+deserializitpsamples = NMRSignalSimulator.deserializitpsamples

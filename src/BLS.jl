@@ -92,6 +92,9 @@ function setupBLS(
     # assemble parameters and problem into a data structure.
     primal_initial = (lbs+ubs) ./2
     dual_initial = zeros(N)
+
+    @show primal_initial
+
     BLS_params = BLSParameters(
         P_vec_buf,
         #A_buf,
@@ -160,3 +163,131 @@ end
 
 #     return B
 # end
+
+
+
+###### model-specific.
+
+function setupwsolver(X, MSS, lb::T, ub::T, y::Vector{Complex{T}};
+    eps_abs = 1e-14,
+    eps_rel = 1e-12,
+    max_iter = 4000,
+    verbose = false,
+    alpha = 1.0,
+    ) where T
+
+    N = size(X.A, 2)
+
+    lb_OSQP = ones(N) .* lb
+    ub_OSQP = ones(N) .* ub
+
+    BLS_params = setupBLS(
+        NMRSignalSimulator.constructdesignmatrix!(
+            NMRSignalSimulator.UseGradientTrait(),
+            X,
+            MSS,
+        ),
+        reinterpretcomplexvector(y),
+        lb_OSQP,
+        ub_OSQP;
+        eps_abs = eps_abs,
+        eps_rel = eps_rel,
+        max_iter = max_iter,
+        verbose = verbose,
+        alpha = alpha,
+    )
+
+    #fill!(BLS_params.primal_initial, 0.0)
+
+    return BLS_params
+end
+
+function solvew!(
+    MSS::NMRSignalSimulator.MixtureSpinSys,
+    BLS_params::BLSParameters{T}, # BLS inputs. BLS solves for the basis coefficients.
+    X::NMRSignalSimulator.BatchEvalBuffer{T},
+    ) where T <: AbstractFloat
+
+    primal_sol, dual_sol, status_flag, obj_val = solveBLS!(
+        BLS_params,
+        NMRSignalSimulator.constructdesignmatrix!(X, MSS),
+    )
+    w = primal_sol
+    BLS_params.primal_initial[:] = primal_sol
+
+    return w
+end
+
+function updatew!(
+    model_params,
+    BLS_params::BLSParameters{T}, # BLS inputs. BLS solves for the basis coefficients.
+    X::NMRSignalSimulator.BatchEvalBuffer{T},
+    p::Vector{T},
+    ) where T <: AbstractFloat
+
+    MSS = model_params.MSS
+
+    NMRSignalSimulator.importmodel!(model_params, p)
+    NMRSignalSimulator.updatebuffer!(X, MSS)
+
+    w = solvew!(MSS, BLS_params, X)
+    model_params.w[:] = w
+
+    return nothing
+end
+
+function updatewandderivatives!(
+    model_params,
+    BLS_params::BLSParameters{T}, # BLS inputs. BLS solves for the basis coefficients.
+    X::NMRSignalSimulator.BatchEvalBuffer{T},
+    p::Vector{T},
+    ) where T <: AbstractFloat
+
+    MSS = model_params.MSS
+
+    NMRSignalSimulator.importmodel!(model_params, p)
+    NMRSignalSimulator.updategradientbuffer!(X, MSS)
+
+    w = solvew!(MSS, BLS_params, X)
+    model_params.w[:] = w
+
+    return nothing
+end
+
+# every interation, solve for BLS.
+function evalenvelopecost!(
+    model_params,
+    BLS_params::BLSParameters{T}, # BLS inputs. BLS solves for the basis coefficients.
+    C::NMRSignalSimulator.CostFuncBuffer{T},
+    p::Vector{T},
+    y::Vector{Complex{T}},
+    ) where T <: AbstractFloat
+
+    X = C.X
+    updatewandderivatives!(model_params, BLS_params, X, p)
+    w = model_params.w
+
+    return norm(X.A *w - y)^2
+end
+
+function evalenvelopegradient!(
+    grad_p::Vector{T},
+    model_params,
+    BLS_params::BLSParameters{T}, # BLS inputs. BLS solves for the basis coefficients.
+    C::NMRSignalSimulator.CostFuncBuffer{T},
+    p::Vector{T},
+    y::Vector{Complex{T}},
+    ) where T <: AbstractFloat
+
+    updatewandderivatives!(model_params, BLS_params, C.X, p)
+
+    # cost.
+    cost = NMRSignalSimulator.evalcost!(
+        grad_p,
+        model_params,
+        C,
+        y,
+    )
+
+    return cost
+end

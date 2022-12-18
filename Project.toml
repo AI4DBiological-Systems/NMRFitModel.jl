@@ -4,8 +4,12 @@ authors = ["Roy Wang"]
 version = "0.1.0"
 
 [deps]
+IntervalMonoFuncs = "4c44cab3-685a-4d4f-a3f2-2eeea13c7f9a"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+NMRSignalSimulator = "5a515ddf-a3f2-4a7d-82cc-71ac3f3f244b"
+NMRSpecifyRegions = "2c6f6ba7-1a3c-4d31-8511-d336c09a6ae6"
 OSQP = "ab2f91bb-94b4-55e3-9ba0-7f65df51de79"
+Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [compat]
