@@ -34,6 +34,7 @@ mapping = NMRSignalSimulator.getParamsMapping(shifts, phases, T2s)
 ### 
 
 N_starts = 1000
+#N_starts = 100
 p0s = getinitialiterates(lbs, ubs, N_starts)
 
 # ## warp.
@@ -64,7 +65,8 @@ y0s = collect( p0s[i][begin+1] for i in eachindex(p0s))
 
 T = Float64
 ref_ind = div(length(x0s),2)
-st = 8
+#st = 8
+st = 2
 lb = lbs[st]
 ub = ubs[st]
 
@@ -135,8 +137,8 @@ warpparameter!(
     itp_b,
 )
 
-display([1:length(p) p p2])
-println()
+# display([1:length(p) p p2])
+# println()
 
 ps = deepcopy(p0s)
 warpparameters!(ps, mapping.shift, lbs, ubs, itp_a, itp_b)

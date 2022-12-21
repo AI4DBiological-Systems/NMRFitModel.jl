@@ -28,8 +28,8 @@ function singlelinkage(
     #   - and if the previous level yielded a non-singleton partition.
     while length(ds) > 0 && h_set[end] < early_stop_distance
 
-        @show ts, ds, partition_prev
-        display([1:length(ts) ts ds])
+        #@show ts, ds, partition_prev
+        #display([1:length(ts) ts ds])
 
         @assert length(ts) == length(ds)
         @assert length(partition_set) == length(h_set)
@@ -257,3 +257,32 @@ function enforceorder(t::Tuple{Int,Int}, a1::Int, a2::Int)
     return i, k, j
 end
 
+##### applications.
+
+function mergepoints(X::Vector{Vector{T}}; tol = 1e-6) where T
+
+    @assert tol > zero(T)
+
+    h_set, partition_set = singlelinkage(X; early_stop_distance = tol)
+
+    inds = sortperm(h_set, rev = true)
+
+    partitioned_set_sorted = partition_set[inds]
+    h_set_sorted = h_set[inds]
+
+    ind = findfirst(xx->xx<tol, h_set_sorted)
+    if typeof(ind) <: Nothing
+        println("Error with mergepoints(). Returning a copy of the input.")
+        return copy(X)
+    end
+
+    P = partitioned_set_sorted[ind] # select partition.
+
+    K = length(P) # number of parts.
+    out = Vector{Vector{T}}(undef, K)
+    for k in eachindex(out)
+        out[k] = Statistics.mean(X[P[k]])
+    end
+
+    return out
+end

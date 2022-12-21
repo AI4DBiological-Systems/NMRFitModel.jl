@@ -13,7 +13,11 @@ PyPlot.matplotlib["rcParams"][:update](["font.size" => 22, "font.family" => "ser
 
 
 # # Load model and data
-project_name = "NRC-4_amino_acid-Jan2022-1"
+#project_name = "NRC-4_amino_acid-Jan2022-1-D2O"
+#project_name = "NRC-4_amino_acid-Jan2022-1-DSS"
+#project_name = "Serine-700MHz"
+project_name = "NRC-Glucose-2018"
+
 load_folder_path = joinpath("./output", project_name)
 
 

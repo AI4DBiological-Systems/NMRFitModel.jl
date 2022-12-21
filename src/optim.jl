@@ -22,7 +22,9 @@ function runOptimjl(
     max_time::Real = Inf,
     max_iters::Integer = 100000,
     lp::Integer = 2,
-    verbose::Bool = false) where T <: AbstractFloat
+    show_trace = false,
+    verbose::Bool = false,
+    ) where T <: AbstractFloat
 
     @assert g_tol > zero(T)
 
@@ -32,9 +34,20 @@ function runOptimjl(
         g_tol = g_tol,
         iterations = max_iters,
         time_limit = max_time,
+        show_trace = show_trace,
+        extended_trace = show_trace, # show extended version of trace if we are showing trace at all.
     )
 
-    ret = Optim.optimize(f, df!, x_initial, Optim.ConjugateGradient(), optim_config)
+    ret = Optim.optimize(f, df!, x_initial, 
+        Optim.ConjugateGradient(
+            #linesearch = Optim.LineSearches.HagerZhang(),
+            #linesearch = Optim.LineSearches.BackTracking(),
+            #linesearch = Optim.LineSearches.Static(),
+            
+
+            #alphaguess = Optim.LineSearches.InitialHagerZhang(),
+            #alphaguess = Optim.LineSearches.InitialQuadratic(),
+        ), optim_config)
 
     x_star::Vector{T} = convert(Vector{T}, Optim.minimizer(ret))
 
@@ -47,6 +60,6 @@ function runOptimjl(
         println()
     end
 
-    return x_star, df_norm
+    return x_star, df_norm, ret.ls_success, ret.iterations
 end
 

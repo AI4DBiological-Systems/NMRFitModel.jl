@@ -40,6 +40,7 @@ function updateuppertriangular!(v, A)
     return nothing
 end
 
+# https://github.com/osqp/OSQP.jl/issues/47
 function setupBLS(
     #mat_params,
     B::Matrix{T},
@@ -51,7 +52,8 @@ function setupBLS(
     max_iter::Int = 4000,
     verbose::Bool = false,
     alpha = 1.0,
-    adaptive_rho = true,
+    adaptive_rho = false,
+    show_initial = false
     ) where T <: AbstractFloat
 
     # set up model objects.
@@ -91,9 +93,12 @@ function setupBLS(
 
     # assemble parameters and problem into a data structure.
     primal_initial = (lbs+ubs) ./2
-    dual_initial = zeros(N)
+    dual_initial = zeros(T,N)
 
-    @show primal_initial
+    if show_initial
+        @show primal_initial
+        @show dual_initial
+    end
 
     BLS_params = BLSParameters(
         P_vec_buf,
@@ -117,8 +122,14 @@ function solveBLS!(
     ) where T <: AbstractFloat
 
     prob, P_vec_buf, y = BLS_params.optim_prob, BLS_params.P_vec, BLS_params.observations
-    primal_initial= BLS_params.primal_initial
+    primal_initial = BLS_params.primal_initial
     dual_initial = BLS_params.dual_initial
+
+    ### debug.
+    primal_initial = (BLS_params.lbs + BLS_params.ubs) ./ 2
+    dual_initial = zeros(T, length(BLS_params.dual_initial))
+
+    ### end debug.
 
     @assert length(primal_initial) == length(dual_initial)
 
@@ -128,9 +139,26 @@ function solveBLS!(
     updateuppertriangular!(P_vec_buf, P)
     q_new = -B'*y
 
-    OSQP.update!(prob, Px = P_vec_buf, q = q_new)
+    OSQP.update!(
+        prob,
+        Px = P_vec_buf,
+        q = q_new,
+        l = BLS_params.lbs, # force update cache.
+        u = BLS_params.ubs, # force update cache.
+    )
+    #@show norm(prob.ucache - BLS_params.ubs) if we don't force update the bounds, this is non-zero!
+    #@show norm(prob.lcache - BLS_params.lbs)
 
     # solve.
+    # @show primal_initial
+    # @show dual_initial
+    # @show P_vec_buf
+    # @show q_new
+
+    # force flush cache to ensure repeatable behavior.
+    #fill!(prob.lcache,zero(T))
+    #fill!(prob.ucache,zero(T))
+    
     OSQP.warm_start!(prob; x = primal_initial, y = dual_initial)
     results = OSQP.solve!(prob)
 
@@ -212,29 +240,36 @@ function solvew!(
         BLS_params,
         NMRSignalSimulator.constructdesignmatrix!(X, MSS),
     )
-    w = primal_sol
-    BLS_params.primal_initial[:] = primal_sol
+    w = collect(
+        clamp(
+            primal_sol[i],
+            BLS_params.lbs[i],
+            BLS_params.ubs[i]
+        ) for i in eachindex(BLS_params.ubs)
+    )
+    #w = primal_sol # problematic. the residual floating point error causes line search assertion errors in Optim.jl.
+    BLS_params.primal_initial[:] = w
 
     return w
 end
 
-function updatew!(
-    model_params,
-    BLS_params::BLSParameters{T}, # BLS inputs. BLS solves for the basis coefficients.
-    X::NMRSignalSimulator.BatchEvalBuffer{T},
-    p::Vector{T},
-    ) where T <: AbstractFloat
+# function updatew!(
+#     model_params,
+#     BLS_params::BLSParameters{T}, # BLS inputs. BLS solves for the basis coefficients.
+#     X::NMRSignalSimulator.BatchEvalBuffer{T},
+#     p::Vector{T},
+#     ) where T <: AbstractFloat
 
-    MSS = model_params.MSS
+#     MSS = model_params.MSS
 
-    NMRSignalSimulator.importmodel!(model_params, p)
-    NMRSignalSimulator.updatebuffer!(X, MSS)
+#     NMRSignalSimulator.importmodel!(model_params, p)
+#     NMRSignalSimulator.updatebuffer!(X, MSS)
 
-    w = solvew!(MSS, BLS_params, X)
-    model_params.w[:] = w
+#     w = solvew!(MSS, BLS_params, X)
+#     model_params.w[:] = w
 
-    return nothing
-end
+#     return nothing
+# end
 
 function updatewandderivatives!(
     model_params,

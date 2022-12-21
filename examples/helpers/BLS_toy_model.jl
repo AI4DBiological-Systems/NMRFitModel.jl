@@ -59,8 +59,15 @@ function evalenvelopecost!(
         BLS_params,
         constructdesignmatrix!(mat_params, f),
     )
-    w = primal_sol
-    BLS_params.primal_initial[:] = primal_sol
+    #w = primal_sol
+    w = collect(
+        clamp(
+            primal_sol[i],
+            BLS_params.lbs[i],
+            BLS_params.ubs[i]
+        ) for i in eachindex(BLS_params.ubs)
+    )
+    BLS_params.primal_initial[:] = w
 
     # cost.
     return evalcostfunc(p, w, y, t_range, modelfunc0)
@@ -82,7 +89,15 @@ function evalenvelopegradient!(
         BLS_params,
         constructdesignmatrix!(mat_params, f),
     )
-    w = primal_sol
+    #w = primal_sol
+    w = collect(
+        clamp(
+            primal_sol[i],
+            BLS_params.lbs[i],
+            BLS_params.ubs[i]
+        ) for i in eachindex(BLS_params.ubs)
+    )
+    BLS_params.primal_initial[:] = w
 
     # cost.
     modelfunc = pp->evalcostfunc(pp, w, y, t_range, modelfunc0)

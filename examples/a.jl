@@ -14,6 +14,7 @@ using LinearAlgebra
 using FFTW
 
 import Random
+import Statistics
 
 # # for plotting.
 # import MakiePlots
@@ -42,3 +43,6 @@ serializitpsamples = NMRSignalSimulator.serializitpsamples
 
 deserializclproxies = NMRSignalSimulator.deserializclproxies
 deserializitpsamples = NMRSignalSimulator.deserializitpsamples
+
+#include("load_setup.jl")
+#include("multi-start.jl")

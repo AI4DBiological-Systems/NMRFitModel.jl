@@ -38,9 +38,24 @@ solvent_ppm_guess = 4.7
 solvent_window_ppm = 0.1
 
 #save_dir = "/outputs/NMR/experiments/NRC"
-project_name = "NRC-4_amino_acid-Jan2022-1"
-relative_file_path = "experiments_1D1H/NRC/amino_acid_mixture_2022"
+#project_name = "NRC-4_amino_acid-Jan2022-1"
+##molecule_entries = ["alpha-D-Glucose"; "beta-D-Glucose"; "D2O"; ] # got w = [0; 0; w_ub;] # correct later.
+
+# project_name = "NRC-4_amino_acid-Jan2022-1"
+# relative_file_path = "experiments_1D1H/NRC/amino_acid_mixture_2022"
+
+molecule_entries = ["alpha-D-Glucose"; "beta-D-Glucose"; "DSS"; ]
+
+project_name = "NRC-Glucose-2018"
+relative_file_path = "experiments_1D1H/NRC/misc/glucose_2018"
+
 experiment_full_path = joinpath(root_data_path, relative_file_path)
+
+# ### overside, serine 700 MHz.
+# experiment_full_path = "/home/roy/Documents/repo/NMRData/experiments_1D1H/BMRB/similar_settings/BMRB-700-20mM/L-Serine"
+
+# project_name = "Serine-700MHz"
+# molecule_entries = ["L-Serine"; ]
 
 ### end inputs.
 
@@ -131,7 +146,7 @@ PyPlot.title("data")
 ####### simulate.
 
 ### inputs.
-molecule_entries = ["alpha-D-Glucose"; "beta-D-Glucose"; "D2O"; ]
+
 
 root_data_path = getdatapath() # coupling values data repository root path
 
@@ -195,6 +210,8 @@ Bs, MSS, itp_samps = NMRSignalSimulator.fitclproxies(type_SSParams, As, λ0;
     Δr_default = Δr_default,
     Δκ_λ_default = Δκ_λ_default,
 )
+
+w = ones(length(molecule_entries))
 
 ## save.
 save_dir = "./output"

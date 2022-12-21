@@ -51,7 +51,7 @@ function setupitpab(window::T, N_itp_samples::Int, domain_proportion::T;
         max_iters = max_iters,
         x_tol = xtol_rel,
         f_tol = ftol_rel,
-        max_time = max_time)
+        max_time = max_time)[begin]
 
     # get compact sigmoid parameters fitted to each of the piece-wise linear maps.
     _, minxs = IntervalMonoFuncs.getlogisticprobitparameters(infos,
@@ -121,7 +121,7 @@ function runOptimjlParticleSwarm(
         println()
     end
 
-    return x_star
+    return x_star, ret.ls_success, ret.iterations
 end
 
 function createendopiewiselines1(p_lb::T,

@@ -1,4 +1,6 @@
 
+import Statistics
+
 Random.seed!(25)
 
 include("./helpers/data.jl")
@@ -20,3 +22,7 @@ ts = tuple.(rs,cs)
 
 
 h_set, partition_set = singlelinkage(X; early_stop_distance = 1.0)
+
+
+
+Y = mergepoints(X; tol = 1.0)

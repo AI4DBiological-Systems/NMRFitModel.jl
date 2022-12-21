@@ -211,4 +211,138 @@ function getinitialiterates(lbs::Vector{T}, ubs::Vector{T}, N::Int) where T
     return X
 end
 
+################# fit.
 
+
+function setupfit(
+    model_params,
+    MSS,
+    y::Vector{Complex{T}},
+    U; # in Hz.
+    w_lb::T = zero(T),
+    w_ub::T = one(T)*1e2,
+    ) where T
+
+    U_rad = U .* (2*π)
+    
+    #
+    shifts, phases, T2s = MSS.shifts, MSS.phases, MSS.T2s
+    mapping = NMRSignalSimulator.getParamsMapping(shifts, phases, T2s)
+
+    # data container.
+    X, gs_re, gs_im, shift_multi_inds, phase_multi_inds,
+    T2_multi_inds = NMRSignalSimulator.costfuncsetup(mapping, MSS, U_rad) # costfuncsetup() takes U in radians.
+
+    C = NMRSignalSimulator.CostFuncBuffer(
+        X, gs_re, gs_im, shift_multi_inds, phase_multi_inds, T2_multi_inds)
+    
+    #
+    BLS_params = setupwsolver(X, MSS, w_lb, w_ub, y)
+    fill!(BLS_params.primal_initial, 0.0)
+
+    #
+    f = pp->NMRFitModel.evalenvelopecost!(
+        model_params,
+        BLS_params,
+        C, 
+        pp,
+        y,
+    )
+
+    df! = (gg,pp)->NMRFitModel.evalenvelopegradient!(
+        gg,
+        model_params,
+        BLS_params,
+        C,
+        pp,
+        y,
+    )
+
+    fdf! = (gg,pp)->NMRFitModel.evalenvelopegradient!(
+        gg,
+        model_params,
+        BLS_params,
+        C,
+        pp,
+        y,
+    )
+
+    return f, df!, fdf!, BLS_params, C
+end
+
+function fitdata(
+    w, # debug
+    BLS_params, #debug.
+    model_params, # debug.
+    f,
+    df!,
+    fdf!,
+    p_initials::Vector{Vector{T}};
+    f_tol = 0.0,
+    x_tol = 0.0,
+    g_tol = 1e-8,
+    max_iters = 1000,
+    verbose = false,
+    max_time = Inf,
+    show_trace = false,
+    ) where T
+
+    M = length(p_initials)
+
+    # diagnostics on impelemntation of f and df.
+    df_discrepancies = Vector{T}(undef, M)
+    f_discrepancies = Vector{T}(undef, M)
+
+    # diagnose decrease in cost between initial and solution iterates.
+    f_initial = Vector{T}(undef, M)
+    f_star = Vector{T}(undef, M)
+
+    # diagnostics
+    status = Vector{Bool}(undef, M)
+    iters_ran = Vector{Int}(undef, M)
+
+    # solution iterates.
+    xs_star = Vector{Vector{T}}(undef, M)
+
+    # fit model.
+    for i in eachindex(p_initials)
+        
+        x_initial = p_initials[i]
+        if verbose
+            @show i
+            
+            # @show x_initial
+            # @show w
+            # @show BLS_params.primal_initial
+            # @show model_params.var_flat
+            # NMRSignalSimulator.importmodel!(model_params, x_initial)
+        end
+
+        x_star, df_x_star_norm, status[i], iters_ran[i] = NMRFitModel.runOptimjl(
+            x_initial,
+            f,
+            df!,
+            g_tol;
+            x_tol = x_tol,
+            f_tol = f_tol,
+            max_time = max_time,
+            max_iters = max_iters,
+            lp = 2,
+            show_trace = show_trace,
+            verbose = verbose,
+        )
+
+        grad_x = ones(length(x_initial)) .* NaN
+        cost_x_star = fdf!(grad_x, x_star)
+
+        # checks.
+        df_discrepancies[i] = abs(f(x_star) - cost_x_star)
+        f_discrepancies[i] = abs(norm(grad_x) - df_x_star_norm)
+        f_initial[i] = f(x_initial)
+        f_star[i] = cost_x_star
+        
+        xs_star[i] = x_star
+    end
+
+    return xs_star, f_star, f_initial, status, iters_ran, f_discrepancies, df_discrepancies
+end
