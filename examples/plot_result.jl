@@ -110,3 +110,8 @@ PyPlot.legend()
 PyPlot.xlabel("ppm")
 PyPlot.ylabel("real")
 PyPlot.title("data vs. fit, real part")
+
+
+### for post.
+x_star = x_star_PO
+w_star = w

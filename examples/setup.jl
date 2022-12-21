@@ -44,18 +44,18 @@ solvent_window_ppm = 0.1
 # project_name = "NRC-4_amino_acid-Jan2022-1"
 # relative_file_path = "experiments_1D1H/NRC/amino_acid_mixture_2022"
 
-molecule_entries = ["alpha-D-Glucose"; "beta-D-Glucose"; "DSS"; ]
+# molecule_entries = ["alpha-D-Glucose"; "beta-D-Glucose"; "DSS"; ]
 
-project_name = "NRC-Glucose-2018"
-relative_file_path = "experiments_1D1H/NRC/misc/glucose_2018"
+# project_name = "NRC-Glucose-2018"
+# relative_file_path = "experiments_1D1H/NRC/misc/glucose_2018"
 
-experiment_full_path = joinpath(root_data_path, relative_file_path)
+# experiment_full_path = joinpath(root_data_path, relative_file_path)
 
-# ### overside, serine 700 MHz.
-# experiment_full_path = "/home/roy/Documents/repo/NMRData/experiments_1D1H/BMRB/similar_settings/BMRB-700-20mM/L-Serine"
+### overside, serine 700 MHz.
+experiment_full_path = "/home/roy/Documents/repo/NMRData/experiments_1D1H/BMRB/similar_settings/BMRB-700-20mM/L-Serine"
 
-# project_name = "Serine-700MHz"
-# molecule_entries = ["L-Serine"; ]
+project_name = "Serine-700MHz"
+molecule_entries = ["L-Serine"; ]
 
 ### end inputs.
 
